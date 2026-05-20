@@ -491,7 +491,7 @@
       <div id="pdf-page-num"></div>
     </div>
     <div style="text-align:right;padding:4px 8px 0;font-family:'Noto Sans KR',sans-serif;font-size:11px;color:#888;letter-spacing:0.1px;">
-      Alt+F &rarr; PDF 전체화면 &nbsp;/&nbsp; Alt+Shift+&darr;|&uarr; &rarr; PDF 장 넘기기
+      Alt+F : PDF 전체화면 &nbsp;/&nbsp; Alt+Shift+&darr;|&uarr; : PDF 장 넘기기
     </div>
   </div>
 
@@ -1927,6 +1927,9 @@ function generateGeminiImage(prompt) {
           const dpr          = window.devicePixelRatio || 1;
           const vp           = page.getViewport({ scale });
           const hiResVP      = page.getViewport({ scale: scale * dpr });
+          // In fullscreen the toggle pins canvas with `left:50%` and expects translateX(-50%) for centering.
+          // Every transform we set below must preserve that or the canvas drifts to the right.
+          const baseTfm      = isFullscreen ? 'translateX(-50%) ' : '';
           // Render to offscreen at high-res, then CSS-scale down for sharpness
           const off    = document.createElement('canvas');
           off.width    = hiResVP.width;
@@ -1936,20 +1939,24 @@ function generateGeminiImage(prompt) {
           const animate = !instant && renderQueue === null;
           if (animate) {
             canvas.style.transition = 'transform 0.12s ease-in, opacity 0.12s ease-in';
-            canvas.style.transform  = `translateY(${direction > 0 ? -14 : 14}px)`;
+            canvas.style.transform  = `${baseTfm}translateY(${direction > 0 ? -14 : 14}px)`;
             canvas.style.opacity    = '0';
             await new Promise(r => setTimeout(r, 120));
           }
           // Snap to entry position, paint new frame
           canvas.style.transition = 'none';
-          canvas.style.transform  = animate ? `translateY(${direction > 0 ? 14 : -14}px)` : 'translateY(0)';
+          canvas.style.transform  = animate
+            ? `${baseTfm}translateY(${direction > 0 ? 14 : -14}px)`
+            : `${baseTfm}translateY(0)`;
           canvas.style.opacity    = '0';
           canvas.width  = hiResVP.width;
           canvas.height = hiResVP.height;
           ctx.drawImage(off, 0, 0);
-          // CSS size = logical size, canvas pixel buffer = high-res
-          canvas.style.width  = vp.width + 'px';
-          canvas.style.height = vp.height + 'px';
+          // CSS size: in fullscreen the toggle owns width/height (100vh/auto); leave them alone.
+          if (!isFullscreen) {
+            canvas.style.width  = vp.width + 'px';
+            canvas.style.height = vp.height + 'px';
+          }
           wrap.style.minHeight = '';
           wrap.style.background = '';
           pageNum.textContent = String(num);
@@ -1957,7 +1964,7 @@ function generateGeminiImage(prompt) {
           canvas.style.transition = animate
             ? 'transform 0.12s ease-out, opacity 0.12s ease-out'
             : 'opacity 0.05s ease';
-          canvas.style.transform = 'translateY(0)';
+          canvas.style.transform = `${baseTfm}translateY(0)`;
           canvas.style.opacity   = '1';
           if (animate) await new Promise(r => setTimeout(r, 120));
         } catch (e) { console.error('PDF render:', e); }
@@ -1994,7 +2001,7 @@ function generateGeminiImage(prompt) {
             <div id="pdf-fb-wrap" style="position:relative;overflow:hidden;aspect-ratio:16/9;cursor:ns-resize;user-select:none;background:#ffffff;touch-action:none;">
               <div id="pdf-fb-num" style="position:absolute;bottom:10px;right:14px;z-index:20;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;color:rgba(255,255,255,0.85);background:rgba(0,0,0,0.38);padding:2px 9px;border-radius:10px;pointer-events:none;">1</div>
             </div>
-            <div style="text-align:right;padding:4px 8px 0;font-family:'Noto Sans KR',sans-serif;font-size:11px;color:#888;letter-spacing:0.1px;">Alt+F &rarr; PDF 전체화면 &nbsp;/&nbsp; Alt+Shift+&darr;|&uarr; &rarr; PDF 장 넘기기</div>`;
+            <div style="text-align:right;padding:4px 8px 0;font-family:'Noto Sans KR',sans-serif;font-size:11px;color:#888;letter-spacing:0.1px;">Alt+F : PDF 전체화면 &nbsp;/&nbsp; Alt+Shift+&darr;|&uarr; : PDF 장 넘기기</div>`;
 
           const fbWrap = document.getElementById('pdf-fb-wrap');
           const fbNum  = document.getElementById('pdf-fb-num');
@@ -2152,6 +2159,7 @@ function generateGeminiImage(prompt) {
       let fsExpanded          = false;
       let fsSavedSectionStyle = '';
       let fsSavedTargetStyle  = '';
+      let fsSavedWrapStyle    = '';
 
       function pdfToggleFullscreen() {
         const section = document.getElementById('pdf-viewer-section');
@@ -2163,6 +2171,8 @@ function generateGeminiImage(prompt) {
         if (!fsExpanded) {
           fsSavedSectionStyle = section.getAttribute('style') || '';
           fsSavedTargetStyle  = target.getAttribute('style')  || '';
+          const wrap          = document.getElementById('pdf-viewer-wrap');
+          fsSavedWrapStyle    = wrap ? (wrap.getAttribute('style') || '') : '';
 
           // Make the section a fullscreen overlay
           section.style.position   = 'fixed';
@@ -2173,10 +2183,17 @@ function generateGeminiImage(prompt) {
           section.style.maxWidth   = 'none';
           section.style.margin     = '0';
           section.style.zIndex     = '9999';
-          section.style.background = '#000';
+          section.style.background = cvs ? '#fff' : '#000';   // white behind canvas, black behind iframe
           section.style.overflow   = 'hidden';
 
           if (cvs) {
+            // Expand the wrap so its white background + page-num indicator cover the full viewport
+            if (wrap) {
+              wrap.style.height     = '100vh';
+              wrap.style.maxHeight  = 'none';
+              wrap.style.width      = '100%';
+              wrap.style.background = '#fff';
+            }
             // PDF.js: fixed-position canvas, height fills the viewport, width keeps aspect
             cvs.style.position  = 'fixed';
             cvs.style.top       = '0';
@@ -2208,6 +2225,12 @@ function generateGeminiImage(prompt) {
           else                     section.removeAttribute('style');
           if (fsSavedTargetStyle)  target.setAttribute('style', fsSavedTargetStyle);
           else                     target.removeAttribute('style');
+          // Restore the canvas wrap (only modified on the cvs path, but safe to attempt either way)
+          const wrap = document.getElementById('pdf-viewer-wrap');
+          if (wrap) {
+            if (fsSavedWrapStyle) wrap.setAttribute('style', fsSavedWrapStyle);
+            else                  wrap.removeAttribute('style');
+          }
           if (fbWrap) fbWrap.classList.remove('pdf-fs');
 
           fsExpanded = false;
