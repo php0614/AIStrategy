@@ -1916,12 +1916,14 @@ function generateGeminiImage(prompt) {
           } else {
             scale = (section.getBoundingClientRect().width || window.innerWidth - 56) / baseVP.width;
           }
+          const dpr          = window.devicePixelRatio || 1;
           const vp           = page.getViewport({ scale });
-          // Render to offscreen while old page is still visible
+          const hiResVP      = page.getViewport({ scale: scale * dpr });
+          // Render to offscreen at high-res, then CSS-scale down for sharpness
           const off    = document.createElement('canvas');
-          off.width    = vp.width;
-          off.height   = vp.height;
-          await page.render({ canvasContext: off.getContext('2d'), viewport: vp }).promise;
+          off.width    = hiResVP.width;
+          off.height   = hiResVP.height;
+          await page.render({ canvasContext: off.getContext('2d'), viewport: hiResVP }).promise;
           // Animate only on wheel scroll; skip if drag or another page is queued
           const animate = !instant && renderQueue === null;
           if (animate) {
@@ -1934,14 +1936,12 @@ function generateGeminiImage(prompt) {
           canvas.style.transition = 'none';
           canvas.style.transform  = animate ? `translateY(${direction > 0 ? 14 : -14}px)` : 'translateY(0)';
           canvas.style.opacity    = '0';
-          canvas.width  = vp.width;
-          canvas.height = vp.height;
+          canvas.width  = hiResVP.width;
+          canvas.height = hiResVP.height;
           ctx.drawImage(off, 0, 0);
-          // In normal mode only: clear any leftover inline size overrides
-          if (!isFullscreen) {
-            canvas.style.width  = '';
-            canvas.style.height = '';
-          }
+          // CSS size = logical size, canvas pixel buffer = high-res
+          canvas.style.width  = vp.width + 'px';
+          canvas.style.height = vp.height + 'px';
           wrap.style.minHeight = '';
           wrap.style.background = '';
           pageNum.textContent = String(num);
@@ -1960,7 +1960,7 @@ function generateGeminiImage(prompt) {
       }
 
       // Use absolute URL — handles Korean/non-ASCII filenames via URL constructor
-      const pdfUrl = new URL('https://raw.githubusercontent.com/php0614/AIStrategy/main/AI%EC%A0%84%EB%9E%B5%EA%B3%BC%EC%8B%A4%EC%A0%84.pdf', location.href).href;
+      const pdfUrl = new URL('AI전략과실전.pdf', location.href).href;
 
       // Expose for Alt+F re-render and Alt+Shift+Arrow page navigation
       window._pdfRenderPage  = (n, instant) => { currentPage = n; renderPage(n, instant); };
@@ -1976,7 +1976,7 @@ function generateGeminiImage(prompt) {
         .catch(err => {
           console.error('PDF load:', err);
           // Fallback: iframe pool — wait until frame is at correct page before showing
-          const BASE = new URL('https://raw.githubusercontent.com/php0614/AIStrategy/main/AI%EC%A0%84%EB%9E%B5%EA%B3%BC%EC%8B%A4%EC%A0%84.pdf', location.href).href;
+          const BASE = new URL('AI전략과실전.pdf', location.href).href;
           let fbPage      = 1;
           let visiblePage = 1;
           let pendingNav  = null;
