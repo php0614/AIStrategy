@@ -442,7 +442,8 @@
       user-select: none;
       overflow: hidden;
       background: #ffffff;
-      height: 656px;
+      aspect-ratio: 16 / 9;
+      touch-action: none;
     }
 
     #pdf-canvas {
@@ -1983,7 +1984,7 @@ function generateGeminiImage(prompt) {
           const iSrc = n => `${BASE}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&view=FitV&page=${n}`;
 
           section.innerHTML = `
-            <div id="pdf-fb-wrap" style="position:relative;overflow:hidden;height:656px;cursor:ns-resize;user-select:none;background:#ffffff;">
+            <div id="pdf-fb-wrap" style="position:relative;overflow:hidden;aspect-ratio:16/9;cursor:ns-resize;user-select:none;background:#ffffff;touch-action:none;">
               <div id="pdf-fb-num" style="position:absolute;bottom:10px;right:14px;z-index:20;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:500;color:rgba(255,255,255,0.85);background:rgba(0,0,0,0.38);padding:2px 9px;border-radius:10px;pointer-events:none;">1</div>
             </div>
             <div style="text-align:right;padding:4px 8px 0;font-family:'Noto Sans KR',sans-serif;font-size:11px;color:#888;letter-spacing:0.1px;">Alt+F &rarr; PDF 전체화면 &nbsp;/&nbsp; Alt+Shift+&darr;|&uarr; &rarr; PDF 장 넘기기</div>`;
@@ -2053,25 +2054,30 @@ function generateGeminiImage(prompt) {
 
           let isDrag = false, dragY = 0;
 
-          fbWrap.addEventListener('mousedown', e => {
-            isDrag = true; dragY = e.clientY;
-            e.preventDefault();
-          });
-          window.addEventListener('mousemove', e => {
+          function fbDragStart(y) { isDrag = true; dragY = y; }
+          function fbDragMove(y) {
             if (!isDrag) return;
-            const delta = dragY - e.clientY;
+            const delta = dragY - y;
             if (delta > 20)       fbNum.textContent = String(fbPage + 1);
             else if (delta < -20) fbNum.textContent = String(Math.max(1, fbPage - 1));
             else                  fbNum.textContent = String(fbPage);
-          });
-          window.addEventListener('mouseup', e => {
+          }
+          function fbDragEnd(y) {
             if (isDrag) {
-              const delta = dragY - e.clientY;
+              const delta = dragY - y;
               const next = delta > 20 ? fbPage + 1 : delta < -20 ? Math.max(1, fbPage - 1) : fbPage;
               navigate(next);
             }
             isDrag = false;
-          });
+          }
+
+          fbWrap.addEventListener('mousedown', e => { fbDragStart(e.clientY); e.preventDefault(); });
+          window.addEventListener('mousemove', e => { fbDragMove(e.clientY); });
+          window.addEventListener('mouseup', e => { fbDragEnd(e.clientY); });
+
+          fbWrap.addEventListener('touchstart', e => { fbDragStart(e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+          fbWrap.addEventListener('touchmove', e => { fbDragMove(e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+          fbWrap.addEventListener('touchend', e => { fbDragEnd(e.changedTouches[0].clientY); });
 
           fbWrap.addEventListener('wheel', e => {
             e.preventDefault();
@@ -2088,22 +2094,27 @@ function generateGeminiImage(prompt) {
           });
         });
 
-      // ── Drag to navigate ────────────────────────────────────────────────
+      // ── Drag/Touch to navigate ──────────────────────────────────────────
       let isDragging  = false;
       let dragStartY  = 0;
       let dragStartPg = 1;
 
-      wrap.addEventListener('mousedown', e => {
-        isDragging = true; dragStartY = e.clientY; dragStartPg = currentPage;
-        e.preventDefault();
-      });
-      window.addEventListener('mousemove', e => {
+      function onDragStart(y) { isDragging = true; dragStartY = y; dragStartPg = currentPage; }
+      function onDragMove(y) {
         if (!isDragging || !pdfDoc) return;
-        const change = Math.round((dragStartY - e.clientY) / 80);
+        const change = Math.round((dragStartY - y) / 80);
         const next   = Math.max(1, Math.min(pdfDoc.numPages, dragStartPg + change));
         if (next !== currentPage) { currentPage = next; renderPage(currentPage, true); }
-      });
-      window.addEventListener('mouseup', () => { isDragging = false; });
+      }
+      function onDragEnd() { isDragging = false; }
+
+      wrap.addEventListener('mousedown', e => { onDragStart(e.clientY); e.preventDefault(); });
+      window.addEventListener('mousemove', e => { onDragMove(e.clientY); });
+      window.addEventListener('mouseup', onDragEnd);
+
+      wrap.addEventListener('touchstart', e => { onDragStart(e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+      wrap.addEventListener('touchmove', e => { onDragMove(e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+      wrap.addEventListener('touchend', onDragEnd);
 
       // ── Mouse wheel ─────────────────────────────────────────────────────
       wrap.addEventListener('wheel', e => {
@@ -2172,6 +2183,7 @@ function generateGeminiImage(prompt) {
             cvs.style.display   = 'block';
           } else {
             // Iframe fallback: expand the wrap and pin inner iframes to fit (no +56px extension)
+            fbWrap.style.aspectRatio = 'auto';
             fbWrap.style.height    = '100vh';
             fbWrap.style.maxHeight = 'none';
             fbWrap.style.width     = '100%';
