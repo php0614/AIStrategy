@@ -555,7 +555,7 @@
   <!-- ── Transformer Visualizer ──────────────────────────────────────────── -->
   <style>
     #transformer-section {
-      max-width: 1600px;
+      max-width: 1300px;
       margin: 0 0 36px;
     }
 
@@ -583,7 +583,7 @@
 
     #transformer-frame-wrap {
       border-radius: var(--radius);
-      overflow: visible;
+      overflow: hidden;
       border: 1px solid var(--border);
       box-shadow: var(--card-shadow);
       background: #faf9f5;
@@ -592,7 +592,8 @@
 
     #transformer-frame {
       display: block;
-      width: 100%;
+      width: 133%;
+      margin-left: -16.5%;
       height: 850px;
       border: none;
     }
@@ -649,12 +650,31 @@
         } catch (e) { /* cross-origin guard */ }
       }
 
+      function injectFrameStyles() {
+        try {
+          const doc = frame.contentDocument || frame.contentWindow.document;
+          if (!doc || !doc.head) return;
+          const existing = doc.getElementById('__injected_stretch');
+          if (existing) return;
+          const s = doc.createElement('style');
+          s.id = '__injected_stretch';
+          s.textContent = [
+            'body { justify-content: flex-start !important; align-items: flex-start !important;',
+            '       background: #faf9f5 !important; }',
+            'body > * { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }'
+          ].join(' ');
+          doc.head.appendChild(s);
+        } catch (e) { /* cross-origin guard */ }
+      }
+
       frame.addEventListener('load', function () {
+        injectFrameStyles();
         autoResizeFrame();
         // Poll for dynamic content changes (animations, late renders)
         let ticks = 0;
         clearInterval(autoResizeTimer);
         autoResizeTimer = setInterval(function () {
+          injectFrameStyles();
           autoResizeFrame();
           if (++ticks > 30) clearInterval(autoResizeTimer); // stop after ~15s
         }, 500);
