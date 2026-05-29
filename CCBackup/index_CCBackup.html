@@ -583,7 +583,7 @@
 
     #transformer-frame-wrap {
       border-radius: var(--radius);
-      overflow: visible;
+      overflow: hidden;
       border: 1px solid var(--border);
       box-shadow: var(--card-shadow);
       background: #faf9f5;
@@ -593,7 +593,7 @@
     #transformer-frame {
       display: block;
       width: 100%;
-      height: 850px;
+      height: 620px;
       border: none;
     }
 
@@ -635,33 +635,8 @@
       const frame = document.getElementById('transformer-frame');
       const handle = document.getElementById('transformer-resize-handle');
       let dragging = false, startY = 0, startH = 0;
-      let autoResizeTimer = null;
-
-      function autoResizeFrame() {
-        try {
-          const doc = frame.contentDocument || frame.contentWindow.document;
-          if (!doc || !doc.body) return;
-          const h = Math.max(
-            doc.body.scrollHeight,
-            doc.documentElement ? doc.documentElement.scrollHeight : 0
-          );
-          if (h > 0) frame.style.height = h + 'px';
-        } catch (e) { /* cross-origin guard */ }
-      }
-
-      frame.addEventListener('load', function () {
-        autoResizeFrame();
-        // Poll for dynamic content changes (animations, late renders)
-        let ticks = 0;
-        clearInterval(autoResizeTimer);
-        autoResizeTimer = setInterval(function () {
-          autoResizeFrame();
-          if (++ticks > 30) clearInterval(autoResizeTimer); // stop after ~15s
-        }, 500);
-      });
 
       handle.addEventListener('mousedown', function (e) {
-        clearInterval(autoResizeTimer); // stop auto-resize when user drags
         dragging = true;
         startY = e.clientY;
         startH = frame.offsetHeight;
