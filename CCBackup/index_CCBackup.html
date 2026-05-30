@@ -555,7 +555,7 @@
   <!-- ── Transformer Visualizer ──────────────────────────────────────────── -->
   <style>
     #transformer-section {
-      max-width: 1470px;
+      max-width: 1300px;
       margin: 0 0 36px;
     }
 
@@ -592,8 +592,9 @@
 
     #transformer-frame {
       display: block;
-      width: 100%;
-      height: 620px;
+      width: 133%;
+      margin-left: -16.5%;
+      height: 850px;
       border: none;
     }
 
@@ -635,8 +636,52 @@
       const frame = document.getElementById('transformer-frame');
       const handle = document.getElementById('transformer-resize-handle');
       let dragging = false, startY = 0, startH = 0;
+      let autoResizeTimer = null;
+
+      function autoResizeFrame() {
+        try {
+          const doc = frame.contentDocument || frame.contentWindow.document;
+          if (!doc || !doc.body) return;
+          const h = Math.max(
+            doc.body.scrollHeight,
+            doc.documentElement ? doc.documentElement.scrollHeight : 0
+          );
+          if (h > 0) frame.style.height = h + 'px';
+        } catch (e) { /* cross-origin guard */ }
+      }
+
+      function injectFrameStyles() {
+        try {
+          const doc = frame.contentDocument || frame.contentWindow.document;
+          if (!doc || !doc.head) return;
+          const existing = doc.getElementById('__injected_stretch');
+          if (existing) return;
+          const s = doc.createElement('style');
+          s.id = '__injected_stretch';
+          s.textContent = [
+            'body { justify-content: flex-start !important; align-items: flex-start !important;',
+            '       background: #faf9f5 !important; }',
+            'body > * { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }'
+          ].join(' ');
+          doc.head.appendChild(s);
+        } catch (e) { /* cross-origin guard */ }
+      }
+
+      frame.addEventListener('load', function () {
+        injectFrameStyles();
+        autoResizeFrame();
+        // Poll for dynamic content changes (animations, late renders)
+        let ticks = 0;
+        clearInterval(autoResizeTimer);
+        autoResizeTimer = setInterval(function () {
+          injectFrameStyles();
+          autoResizeFrame();
+          if (++ticks > 30) clearInterval(autoResizeTimer); // stop after ~15s
+        }, 500);
+      });
 
       handle.addEventListener('mousedown', function (e) {
+        clearInterval(autoResizeTimer); // stop auto-resize when user drags
         dragging = true;
         startY = e.clientY;
         startH = frame.offsetHeight;

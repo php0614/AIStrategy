@@ -650,6 +650,8 @@
         } catch (e) { /* cross-origin guard */ }
       }
 
+      let animPaused = false;
+
       function injectFrameStyles() {
         try {
           const doc = frame.contentDocument || frame.contentWindow.document;
@@ -664,12 +666,47 @@
             'body > * { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }'
           ].join(' ');
           doc.head.appendChild(s);
+
+          // Freeze all animations during load to prevent text glitch
+          const freeze = doc.createElement('style');
+          freeze.id = '__injected_freeze';
+          freeze.textContent = '* { animation-play-state: paused !important; transition: none !important; }';
+          doc.head.appendChild(freeze);
         } catch (e) { /* cross-origin guard */ }
+      }
+
+      function unfreezeFrame() {
+        try {
+          const doc = frame.contentDocument || frame.contentWindow.document;
+          if (!doc) return;
+          const freeze = doc.getElementById('__injected_freeze');
+          if (freeze) freeze.remove();
+        } catch (e) {}
+      }
+
+      function toggleFrameAnimation() {
+        try {
+          const doc = frame.contentDocument || frame.contentWindow.document;
+          if (!doc || !doc.head) return;
+          let pauseStyle = doc.getElementById('__injected_pause');
+          if (pauseStyle) {
+            pauseStyle.remove();
+            animPaused = false;
+          } else {
+            const s = doc.createElement('style');
+            s.id = '__injected_pause';
+            s.textContent = '* { animation-play-state: paused !important; }';
+            doc.head.appendChild(s);
+            animPaused = true;
+          }
+        } catch (e) {}
       }
 
       frame.addEventListener('load', function () {
         injectFrameStyles();
         autoResizeFrame();
+        // Unfreeze after layout settles (prevent initial text size glitch)
+        setTimeout(unfreezeFrame, 900);
         // Poll for dynamic content changes (animations, late renders)
         let ticks = 0;
         clearInterval(autoResizeTimer);
@@ -678,6 +715,14 @@
           autoResizeFrame();
           if (++ticks > 30) clearInterval(autoResizeTimer); // stop after ~15s
         }, 500);
+      });
+
+      // Alt+P: toggle animation pause inside transformer iframe
+      document.addEventListener('keydown', function (e) {
+        if (e.altKey && (e.key === 'p' || e.key === 'P')) {
+          e.preventDefault();
+          toggleFrameAnimation();
+        }
       });
 
       handle.addEventListener('mousedown', function (e) {
