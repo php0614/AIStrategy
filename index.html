@@ -969,7 +969,7 @@
     // ── Hardcoded Data ──────────────────────────────────────────────────────────
     const HARDCODED_DATA = [
       [
-        "HTML+Javascript로,",
+        "HTML로,",
         ".pdf / .docx / .xlsx 문서를 읽고 .pdf 파일을 내보내는,",
         "'XXX 보고서 요약기'라는 이름의 요약 보고서를 생성해주는 프로그램을 만들어줘. 세 형식 중 하나의 파일을 GUI의 드래그앤 드롭 부분에 끌어다 놓으면 추가적인 확인없이 바로 프로세스가 진행되게 해. 보고서 출력은 .pdf 파일로 받을 수 있게 하고 GUI의 창에 .pdf 파일 결과물을 바로 보여줘. .pdf파일은 가독성이 좋게 구성하고 개괄식 문장으로 구성해. 아주 효과적인 경우에만 제한적으로 이모지를 사용해줘.",
         "GUI는 깔끔하고 미니멀하게 만들어주고 가독성이 좋은 폰트로 구성하며 테마는 하얀색 위주의 밝은 테마로 해줘.",
@@ -977,7 +977,7 @@
         "리액트 파일 등 말고 반드시 .html파일을 만들어주며 API키는 사용자가 GUI에서 직접 입력하게 해. 문서 전체(document)에 발생하는 모든 드래그 관련 이벤트(enter, over, leave, drop)의 기본 동작과 이벤트 전파를 원천적으로 차단하는 코드를 적용해서 pdf 등의 문서를 드래그 했을 때 크롬에서 열리는 일이 없게 해 "
       ],
       [
-        "HTML+Javascript로,",
+        "HTML로,",
         ".jpg 또는 .png 파일을 읽고 .xlsx 파일을 출력하거나 기존 파일에 append하는,",
         "'XXX 영수증 OCR 프로세서'라는 이름의, 한국어 영수증 그림을 읽고 영수증의 정보를 추출하는 프로그램을 구현해줘.  드래그앤 드롭이 가능한 곳에 그림 파일들을 1개에서 최대 20개까지 끌어다 놓으면 분석이 시작되게 해. 그 후 'Append' 버튼을 누르면 이미 존재하는 엑셀파일(.x|sx)을 선택할 수 있고, 추출된 해당 정보들은 엑셀 파일의 내용이 있는 마지막 줄 다음 빈 줄의 각각의 column에 '물품명, 총액, 공급가액, 부가세' 순으로 추가해줘. Create는 해당 네 가지 설명을 맨 윗줄에 넣어주고, Append일 경우는 설명에 해당하는 줄 없이 내용만 추가해. 'Create' 버튼을 누르면 세이브 창이 나오고 엑셀 파일을 새로 만들 수 있고, 그 엑셀 파일의 첫줄에 저 내용이 들어있게 해줘. 추출된 정보는 엑셀 파일을 만들기 전에도 웹에서 바로 그 결과표를 보여줘",
         "GUI는 깔끔하고 미니멀하게 만들어주고 가독성이 좋은 폰트로 구성하며 테마는 하얀색 위주의 밝은 테마로 해줘.",
@@ -1569,7 +1569,7 @@
         <!-- Row 1 (L → R): 프로그래밍 언어 → 입/출력 파일 형식 → 목적과 구성 -->
         <div class="d-node" style="--node-color:#4f6ef7; grid-column:1; grid-row:1;">
           <div class="d-node-label">프로그래밍 언어</div>
-          <div class="adv-fixed-value">HTML+Javascript로,</div>
+          <div class="adv-fixed-value">HTML로,</div>
         </div>
         <div class="d-arrow" style="grid-column:2; grid-row:1;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
@@ -3011,6 +3011,11 @@ function generateGeminiImage(prompt) {
           if (next !== cur && window._pdfRenderPage) {
             window._pdfRenderPage(next);
           }
+        } else if (e.shiftKey && e.code === 'KeyM') {
+          e.preventDefault();
+          const total = window._pdfNumPages ? window._pdfNumPages() : 0;
+          if (total === 0 || !window._pdfRenderPage) return;
+          window._pdfRenderPage(Math.min(57, total));
         }
       });
     })();
