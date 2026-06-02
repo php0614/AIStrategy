@@ -892,6 +892,52 @@
     .p1-demo-fmt-btn svg { color: #e5494a; }
     .p1-demo-fmt-btn:hover { border-color: #e5494a; background: color-mix(in srgb, #e5494a 7%, white); }
 
+    /* 프롬프트 2 미리보기: 미니멀 스프레드시트 표 */
+    .p2-sheet {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .p2-sheet th, .p2-sheet td {
+      border: 1px solid var(--border);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 7px;
+      line-height: 1.4;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .p2-sheet th {
+      padding: 3px 1px;
+      background: #f5f5f7;
+      font-weight: 700;
+      color: var(--text-2);
+    }
+    .p2-sheet td {
+      height: 15px;
+      padding: 0;
+    }
+    .p2-btn-row {
+      display: flex;
+      gap: 7px;
+      margin-top: 2px;
+    }
+    .p2-btn {
+      flex: 1;
+      padding: 6px 4px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--bg);
+      color: var(--text-2);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .p2-btn:hover  { border-color: #e5494a; background: color-mix(in srgb, #e5494a 7%, white); color: #e5494a; }
+    .p2-btn:active { transform: scale(0.96); }
+
     @media (max-width: 1200px) {
       .p1-demo { display: none !important; }
     }
@@ -933,7 +979,7 @@
       [
         "HTML+Javascript로,",
         ".jpg 또는 .png 파일을 읽고 .xlsx 파일을 출력하거나 기존 파일에 append하는,",
-        "'XXX 영수증 OCR 프로세서'라는 이름의, 한국어 영수증 그림을 읽고 영수증의 정보를 추출하는 프로그램을 구현해줘.  드래그앤 드롭이 가능한 곳에 그림 파일들을 1개에서 최대 20개까지 끌어다 놓으면 분석이 시작되게 해. 그 후 'Append' 버튼을 누르면 이미 존재하는 엑셀파일(.x|sx)을 선택할 수 있고, 추출된 해당 정보들은 엑셀 파일의 내용이 있는 마지막 줄 다음 빈 줄의 각각의 column에 '물품명, 총액, 공급가액, 부가세' 순으로 추가해줘. 설명에 해당하는 줄 없이 내용만 추가해. 'Create' 버튼을 누르면 세이브 창이 나오고 엑셀 파일을 새로 만들 수 있고, 그 엑셀 파일의 첫줄에 저 내용이 들어있게 해줘. 추출된 정보는 엑셀 파일을 만들기 전에도 웹에서 바로 그 결과표를 보여줘",
+        "'XXX 영수증 OCR 프로세서'라는 이름의, 한국어 영수증 그림을 읽고 영수증의 정보를 추출하는 프로그램을 구현해줘.  드래그앤 드롭이 가능한 곳에 그림 파일들을 1개에서 최대 20개까지 끌어다 놓으면 분석이 시작되게 해. 그 후 'Append' 버튼을 누르면 이미 존재하는 엑셀파일(.x|sx)을 선택할 수 있고, 추출된 해당 정보들은 엑셀 파일의 내용이 있는 마지막 줄 다음 빈 줄의 각각의 column에 '물품명, 총액, 공급가액, 부가세' 순으로 추가해줘. Create는 해당 네 가지 설명을 맨 윗줄에 넣어주고, Append일 경우는 설명에 해당하는 줄 없이 내용만 추가해. 'Create' 버튼을 누르면 세이브 창이 나오고 엑셀 파일을 새로 만들 수 있고, 그 엑셀 파일의 첫줄에 저 내용이 들어있게 해줘. 추출된 정보는 엑셀 파일을 만들기 전에도 웹에서 바로 그 결과표를 보여줘",
         "GUI는 깔끔하고 미니멀하게 만들어주고 가독성이 좋은 폰트로 구성하며 테마는 하얀색 위주의 밝은 테마로 해줘.",
         "Google Gemini API의 'gemini-3.1-flash-image-preview' 모델을 사용해.",
         ""
@@ -1179,6 +1225,12 @@
         syncDemo();
       }
 
+      // 프롬프트 2: 카드 오른쪽 빈 공간에 고정 미리보기(스프레드시트) 표시
+      if (index === 2) {
+        card.style.position = 'relative';
+        card.appendChild(buildP2Demo());
+      }
+
       requestAnimationFrame(() => inputs.forEach(ta => ta && autoResize(ta)));
       return card;
     }
@@ -1219,6 +1271,25 @@
         blocks.forEach(b => b.classList.toggle('on', Number(b.dataset.demo) === idx));
       }
       return { el, update };
+    }
+
+    // 프롬프트 2 우측 고정 미리보기: 3x4 미니멀 스프레드시트 (항상 표시)
+    function buildP2Demo() {
+      const el = document.createElement('div');
+      el.className = 'p1-demo visible';   // p1 미리보기와 동일한 크기·박스, 항상 표시
+      el.innerHTML = `
+        <div class="p1-demo-title">미리보기</div>
+        <table class="p2-sheet">
+          <tr><th>물품명</th><th>총액</th><th>공급가액</th><th>부가세</th></tr>
+          <tr><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td></tr>
+        </table>
+        <div class="p2-btn-row">
+          <button type="button" class="p2-btn">Append</button>
+          <button type="button" class="p2-btn">Create</button>
+        </div>
+      `;
+      return el;
     }
 
     // ── Render ──────────────────────────────────────────────────────────────────
