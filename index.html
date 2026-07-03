@@ -2685,7 +2685,7 @@ function generateGeminiImage(prompt) {
       }
 
       // Use absolute URL — handles Korean/non-ASCII filenames via URL constructor
-      const pdfUrl = new URL('AI전략과실전.pdf', location.href).href;
+      const pdfUrl = new URL('AIPrompt.pdf', location.href).href;
 
       // Expose for Ctrl+Alt+F re-render and Alt+Shift+Arrow page navigation
       window._pdfRenderPage  = (n, instant) => { currentPage = n; renderPage(n, instant); };
@@ -2701,7 +2701,7 @@ function generateGeminiImage(prompt) {
         .catch(err => {
           console.error('PDF load:', err);
           // Fallback: iframe pool — wait until frame is at correct page before showing
-          const BASE = new URL('AI전략과실전.pdf', location.href).href;
+          const BASE = new URL('AIPrompt.pdf', location.href).href;
           let fbPage      = 1;
           let visiblePage = 1;
           let pendingNav  = null;
